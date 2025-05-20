@@ -29,18 +29,27 @@ async function run() {
 
     const recipesCollection = client.db("recipeDB").collection("recipes");
 
-    app.get('/recipes',async(req,res)=>{
-        const cursor=recipesCollection.find();
-        const result = await cursor.toArray();
-        res.send(result);
-    })
-    app.get('/recipes/:id',async(req,res)=>{
-        const id = req.params.id;
-        const query={_id: new ObjectId(id)}
-        const result= await recipesCollection.findOne(query);
-        res.send(result);
-
-    })
+    app.get("/recipes", async (req, res) => {
+      const cursor = recipesCollection.find();
+      const result = await cursor.toArray();
+      res.send(result);
+    });
+    app.get("/recipes/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await recipesCollection.findOne(query);
+      res.send(result);
+    });
+    app.put("/recipes/:id", async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      const updatedRecipe = req.body;
+      const updatedDoc = {
+        $set: updatedRecipe,
+      };
+      const result = await recipesCollection.updateOne(filter, updatedDoc);
+      res.send(result);
+    });
 
     app.post("/recipes", async (req, res) => {
       const newRecipe = req.body;
@@ -49,12 +58,12 @@ async function run() {
       res.send(result);
     });
 
-    app.delete('/recipes/:id',async(req,res)=>{
-        const id =req.params.id;
-        const query={_id: new ObjectId(id)}
-        const result = await recipesCollection.deleteOne(query);
-        res.send(result);
-    })
+    app.delete("/recipes/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await recipesCollection.deleteOne(query);
+      res.send(result);
+    });
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
