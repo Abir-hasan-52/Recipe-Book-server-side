@@ -200,6 +200,12 @@ async function run() {
       }
     });
 
+    app.get("/recipes/AllRecipes",async(req,res)=>{
+        const cursor = recipesCollection.find();
+      const result = await cursor.toArray();
+      res.send(result);
+    });
+
     app.get("/recipes", async (req, res) => {
       const cursor = recipesCollection.find();
       const result = await cursor.toArray();
