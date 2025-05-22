@@ -28,6 +28,9 @@ async function run() {
     await client.connect();
 
     const recipesCollection = client.db("recipeDB").collection("recipes");
+
+    const userCollection=client.db("recipeDB").collection("users");
+
     const topRecipes = [
       {
         id: 1,
@@ -241,6 +244,26 @@ async function run() {
       const result = await recipesCollection.deleteOne(query);
       res.send(result);
     });
+
+
+    // user related APIs
+
+    app.get('/user',async(req,res)=>{
+        const result= await userCollection.find().toArray();
+        res.send(result);
+    })
+
+
+
+    app.post('/users',async(req,res)=>{
+        const userProfile=req.body;
+        console.log(userProfile);
+        const result =await userCollection.insertOne(userProfile);
+        res.send(result);
+    })
+
+
+
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
