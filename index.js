@@ -29,13 +29,12 @@ async function run() {
 
     const recipesCollection = client.db("recipeDB").collection("recipes");
 
-    const userCollection=client.db("recipeDB").collection("users");
+    const userCollection = client.db("recipeDB").collection("users");
 
     const topRecipes = [
       {
         id: 1,
-        image:
-          "https://i.ibb.co/YT0hXTF9/spaghetti-bolognese-106560-1.jpg",
+        image: "https://i.ibb.co/YT0hXTF9/spaghetti-bolognese-106560-1.jpg",
         title: "Spaghetti Bolognese",
         ingredients: [
           "200g spaghetti",
@@ -89,8 +88,7 @@ async function run() {
       },
       {
         id: 3,
-        image:
-          "https://i.ibb.co/GQdxwYb3/images-4.jpg",
+        image: "https://i.ibb.co/GQdxwYb3/images-4.jpg",
         title: "Vegetable Stir Fry",
         ingredients: [
           "Bell pepper",
@@ -114,8 +112,7 @@ async function run() {
       },
       {
         id: 4,
-        image:
-          "https://i.ibb.co/QvB3Zx2G/Beef-Tacos.webp",
+        image: "https://i.ibb.co/QvB3Zx2G/Beef-Tacos.webp",
         title: "Beef Tacos",
         ingredients: [
           "500g ground beef",
@@ -138,8 +135,7 @@ async function run() {
       },
       {
         id: 5,
-        image:
-          "https://i.ibb.co/chqxLc2m/vegan-pancakes.jpg",
+        image: "https://i.ibb.co/chqxLc2m/vegan-pancakes.jpg",
         title: "Vegan Pancakes",
         ingredients: [
           "Flour",
@@ -162,8 +158,7 @@ async function run() {
       },
       {
         id: 6,
-        image:
-          "https://i.ibb.co/GQdxwYb3/images-4.jpg",
+        image: "https://i.ibb.co/GQdxwYb3/images-4.jpg",
         title: "Vegetable Soup",
         ingredients: [
           "Olive oil",
@@ -203,17 +198,26 @@ async function run() {
       }
     });
 
-    app.get("/recipes/AllRecipes",async(req,res)=>{
-        const cursor = recipesCollection.find();
-      const result = await cursor.toArray();
-      res.send(result);
-    });
-
-    app.get("/recipes", async (req, res) => {
+    app.get("/recipes/AllRecipes", async (req, res) => {
       const cursor = recipesCollection.find();
       const result = await cursor.toArray();
       res.send(result);
     });
+
+     
+
+    app.get("/recipes", async (req, res) => {
+      try {
+        const filter = { likeCount: { $exists: false } };
+        const cursor = recipesCollection.find(filter);
+        const result = await cursor.toArray();
+        res.send(result);
+      } catch (error) {
+        console.error("Error fetching recipes:", error);
+        res.status(500).send({ message: "Server Error" });
+      }
+    });
+
     app.get("/recipes/:id", async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
@@ -245,25 +249,19 @@ async function run() {
       res.send(result);
     });
 
-
     // user related APIs
 
-    app.get('/user',async(req,res)=>{
-        const result= await userCollection.find().toArray();
-        res.send(result);
-    })
+    app.get("/user", async (req, res) => {
+      const result = await userCollection.find().toArray();
+      res.send(result);
+    });
 
-
-
-    app.post('/users',async(req,res)=>{
-        const userProfile=req.body;
-        console.log(userProfile);
-        const result =await userCollection.insertOne(userProfile);
-        res.send(result);
-    })
-
-
-
+    app.post("/users", async (req, res) => {
+      const userProfile = req.body;
+      console.log(userProfile);
+      const result = await userCollection.insertOne(userProfile);
+      res.send(result);
+    });
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
