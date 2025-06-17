@@ -188,8 +188,8 @@ async function run() {
       try {
         const topRecipes = await recipesCollection
           .find({})
-          .sort({ likeCount: -1 }) // Sort by likes descending
-          .limit(6) // Get top 6
+          .sort({ likeCount: -1 })
+          .limit(6)
           .toArray();
 
         res.send(topRecipes);
@@ -211,18 +211,54 @@ async function run() {
       res.send(result);
     });
 
-     
+    app.put("/recipes/:id/like", async (req, res) => {
+      const recipeId = req.params.id;
+      const { userId } = req.body;
 
-    app.get("/recipes", async (req, res) => {
       try {
-        const filter = { likeCount: { $exists: false } };
-        const cursor = recipesCollection.find(filter);
-        const result = await cursor.toArray();
-        res.send(result);
+        const recipe = await recipesCollection.findOne({
+          _id: new ObjectId(recipeId),
+        });
+
+        if (!recipe) {
+          return res.status(404).send({ message: "Recipe not found." });
+        }
+
+        if (recipe.ownerId === userId) {
+          return res
+            .status(403)
+            .send({ message: "You cannot like your own recipe." });
+        }
+
+        const result = await recipesCollection.updateOne(
+          { _id: new ObjectId(recipeId) },
+          { $inc: { likeCount: 1 } }
+        );
+
+        res.send({ message: "Like added successfully", result });
       } catch (error) {
-        console.error("Error fetching recipes:", error);
-        res.status(500).send({ message: "Server Error" });
+        console.error(error);
+        res.status(500).send({ message: "Failed to like the recipe." });
       }
+    });
+
+    // app.get("/recipes", async (req, res) => {
+    //   const filter = { likeCount: { $exists: false } };
+    //   const cursor = recipesCollection.find(filter);
+    //   const result = await cursor.toArray();
+    //   res.send(result);
+    // });
+    app.get("/recipes", async (req, res) => {
+      const cursor = recipesCollection.find();
+      const result = await cursor.toArray();
+      res.send(result);
+    });
+
+    app.get("/recipes/myRecipe", async (req, res) => {
+      const filter = { likeCount: 0 }; 
+      const cursor = recipesCollection.find(filter);
+      const result = await cursor.toArray();
+      res.send(result);
     });
 
     app.get("/recipes/:id", async (req, res) => {
