@@ -25,13 +25,14 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
-    await client.connect();
+    // await client.connect();
 
     const recipesCollection = client.db("recipeDB").collection("recipes");
 
     const userCollection = client.db("recipeDB").collection("users");
-
-     
+    const savedRecipesCollection = client
+      .db("recipeDB")
+      .collection("savedRecipes");
 
     app.get("/recipes/top", async (req, res) => {
       try {
@@ -47,17 +48,134 @@ async function run() {
       }
     });
 
-    app.get("/recipes/AllRecipes", async (req, res) => {
-      const cursor = recipesCollection.find();
-      const result = await cursor.toArray();
-      res.send(result);
-    });
+    // app.get("/recipes/AllRecipes", async (req, res) => {
+    //   const cursor = recipesCollection.find();
+    //   const result = await cursor.toArray();
+    //   res.send(result);
+    // });
 
     app.get("/recipes/AllRecipes/:id", async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const result = await recipesCollection.findOne(query);
       res.send(result);
+    });
+
+    // 1️⃣ Get all recipes
+    app.get("/recipes/AllRecipes", async (req, res) => {
+      const recipes = await recipesCollection.find().toArray();
+      res.json(recipes);
+    });
+    // 2️⃣ Get single recipe
+    app.get("/recipes/AllRecipes/:id", async (req, res) => {
+      const id = req.params.id;
+      const recipe = await recipesCollection.findOne({ _id: new ObjectId(id) });
+      res.json(recipe);
+    });
+
+    // 3️⃣ Like a recipe
+    app.patch("/recipes/like/:id", async (req, res) => {
+      try {
+        const id = req.params.id;
+        const recipe = await recipesCollection.findOne({
+          _id: new ObjectId(id),
+        });
+        if (!recipe)
+          return res.status(404).json({ message: "Recipe not found" });
+
+        const result = await recipesCollection.findOneAndUpdate(
+          { _id: new ObjectId(id) },
+          { $inc: { likeCount: 1 } },
+          { returnDocument: "after" }
+        );
+
+        res.json(result.value);
+      } catch (err) {
+        res.status(500).json({ message: err.message });
+      }
+    });
+
+    // 4️⃣ Save recipe
+
+    // app.post("/savedRecipes", async (req, res) => {
+    //   const { userEmail, recipeId } = req.body;
+    //   if (!userEmail || !recipeId)
+    //     return res.status(400).json({ message: "Missing data" });
+
+    //   const exists = await savedRecipesCollection.findOne({
+    //     userEmail,
+    //     recipeId: new ObjectId(recipeId),
+    //   });
+    //   if (exists)
+    //     return res.status(400).json({ message: "Recipe already saved" });
+
+    //   const result = await savedRecipesCollection.insertOne({
+    //     userEmail,
+    //     recipeId: new ObjectId(recipeId),
+    //     createdAt: new Date(),
+    //   });
+
+    //   res.status(201).json(result);
+    // });
+    app.post("/savedRecipes", async (req, res) => {
+      const recipe = req.body; // এখানে full object আসবে
+      const result = await savedRecipesCollection.insertOne(recipe);
+      res.send(result);
+    });
+
+    // Get all saved recipes for a user
+    // app.get("/savedRecipes/:email", async (req, res) => {
+    //   try {
+    //     const { email } = req.params;
+    //     const result = await savedRecipesCollection
+    //       .aggregate([
+    //         { $match: { userEmail: email } },
+    //         {
+    //           $lookup: {
+    //             from: "recipes", // তোমার main recipes collection এর নাম
+    //             localField: "recipeId",
+    //             foreignField: "_id",
+    //             as: "recipeDetails",
+    //           },
+    //         },
+    //         { $unwind: "$recipeDetails" },
+    //         {
+    //           $project: {
+    //             _id: 1,
+    //             recipeId: 1,
+    //             userEmail: 1,
+    //             createdAt: 1,
+    //             name: "$recipeDetails.name",
+    //             image: "$recipeDetails.image",
+    //             description: "$recipeDetails.description",
+    //           },
+    //         },
+    //       ])
+    //       .toArray();
+
+    //     res.send(result);
+    //   } catch (err) {
+    //     res.status(500).json({ message: err.message });
+    //   }
+    // });
+
+    app.get("/savedRecipes/:email", async (req, res) => {
+      const email = req.params.email;
+      const recipes = await savedRecipesCollection
+        .find({ userEmail: email })
+        .toArray();
+      res.send(recipes);
+    });
+
+    // 6️⃣ Remove saved recipe
+    app.delete("/savedRecipes/:id", async (req, res) => {
+      try {
+        const id = req.params.id;
+        await savedRecipesCollection.deleteOne({ _id: new ObjectId(id) });
+        res.json({ message: "Saved recipe removed" });
+      } catch (err) {
+        res.status(500).json({ message: err.message });
+      }
     });
 
     app.put("/recipes/:id/like", async (req, res) => {
@@ -91,7 +209,6 @@ async function run() {
       }
     });
 
-     
     app.get("/recipes", async (req, res) => {
       const cursor = recipesCollection.find();
       const result = await cursor.toArray();
@@ -99,7 +216,7 @@ async function run() {
     });
 
     app.get("/recipes/myRecipe", async (req, res) => {
-      const filter = { likeCount: 0 }; 
+      const filter = { likeCount: 0 };
       const cursor = recipesCollection.find(filter);
       const result = await cursor.toArray();
       res.send(result);
